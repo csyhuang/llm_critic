@@ -30,4 +30,4 @@ critic.generate_critique(
     task_for_llm=critic_prompt,
     output_filename=output_fname)
 
-# The screen will print: "Successfully generated ChatGPT4Critic_response_to_ch30.md."
+# The screen will print: "Successfully generated GerminiFlash_response_to_ch30.md."
