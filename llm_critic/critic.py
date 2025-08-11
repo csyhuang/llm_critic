@@ -193,27 +193,27 @@ class GitHubModelCritic(Critic):
 
 def critic_factory(llm_model: LargeLanguageModels) -> Critic:
     """
-    Factory function to instantiate a Critic subclass based on the specified LLM model.
+    Instantiates and returns a Critic subclass based on the specified LLM model.
 
-    This function returns an appropriate Critic instance for the given `llm_model`.
-    If the model is supported by GitHub Models, it returns a GitHubModelCritic with the `llm_model` attribute
-    set accordingly. If the model has its own API, it returns a custom Critic class (e.g., GerminiCritic,
-    ClaudeSonnetCritic).
+    For Claude models, returns a `ClaudeSonnetCritic` instance.
+    For Gemini models, returns a `GerminiCritic` instance with the `llm_model` attribute set.
+    For other models, returns a `GitHubModelCritic` instance with the `llm_model` attribute set.
 
     Args:
         llm_model (LargeLanguageModels): The LLM model to use for the Critic.
 
     Returns:
-        Critic: An instance of a Critic subclass configured for the specified LLM model.
+        Critic: An instance of the appropriate Critic subclass for the specified LLM model.
     """
-    mapping = {
-        LargeLanguageModels.GerminiFlash: GerminiCritic,
-        LargeLanguageModels.ClaudeSonnet4: ClaudeSonnetCritic}
-    if llm_model in mapping:
-        return mapping[llm_model]()
-    new_critic = GitHubModelCritic()
-    new_critic.llm_model = llm_model
-    return new_critic
+    if llm_model.value.startswith("claude"):  # Anthropic's Claude models
+        return ClaudeSonnetCritic()
+
+    if llm_model.value.startswith("gemini"):  # Google's Gemini models
+        critic = GerminiCritic()
+    else:  # GitHub Models or other models
+        critic = GitHubModelCritic()
+    critic.llm_model = llm_model
+    return critic
 
 
 class DeepSeekR1Critic(GitHubModelCritic):
@@ -320,27 +320,27 @@ class ClaudeSonnetCritic(Critic):
 
 class GerminiCritic(Critic):
     """
-    Critic that uses the GerminiFlash model via the Google AI Gemini API.
+    Critic that uses the GeminiFlash model via the Google AI Gemini API.
     """
 
     def __init__(self):
         """
         Initializes a GerminiCritic instance.
 
-        Sets the `llm_model` attribute to `LargeLanguageModels.GerminiFlash`.
+        Sets the `llm_model` attribute to `LargeLanguageModels.GeminiFlash`.
         """
         super().__init__()
-        self.llm_model = LargeLanguageModels.GerminiFlash
+        self.llm_model = LargeLanguageModels.GeminiFlash
 
     def pass_query_to_llm_to_get_response(self, query):
         """
-        Sends a query to the GerminiFlash model via the Google AI Gemini API.
+        Sends a query to the GeminiFlash model via the Google AI Gemini API.
 
         Args:
             query (str): The query to send to the LLM.
 
         Returns:
-            google.ai.generative_models.generation_models.GenerateContentResponse: The response from the GerminiFlash model.
+            google.ai.generative_models.generation_models.GenerateContentResponse: The response from the GeminiFlash model.
         """
         client = genai.Client()
         response = client.models.generate_content(model=self.llm_model.value, contents=query)

@@ -12,7 +12,9 @@ class LargeLanguageModels(Enum):
     ClaudeSonnet4 = "claude-sonnet-4-20250514"
 
     # Google
-    GerminiFlash = "gemini-2.5-flash"
+    GeminiPro = "gemini-2.5-pro"  # Enhanced thinking and reasoning, multimodal understanding, advanced coding, and more
+    GeminiFlash = "gemini-2.5-flash"  # Adaptive thinking, cost efficiency
+    GeminiFlashLite = "gemini-2.5-flash-lite"  # Most cost-efficient model supporting high throughput
 
     # Below are specifically GitHub Models
     DeepSeekR1 = "deepseek/DeepSeek-R1-0528"
@@ -23,4 +25,3 @@ class LargeLanguageModels(Enum):
     GPT5_MINI = "openai/gpt-5-mini"  # A lightweight version for cost-sensitive applications.
     GPT5_NANO = "openai/gpt-5-mini"  # Optimized for speed and ideal for applications requiring low latency.
     GPT5_CHAT = "openai/gpt-5-chat"  # Designed for advanced, natural, multimodal, and context-aware conversations for enterprise applications.
-

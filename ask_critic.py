@@ -18,7 +18,7 @@ critic_prompt: str = \
     "你是連載小說編輯。以下是你旗下作者的連載小說稿件。請校對並列出以下稿件的所有錯別字、不當用語、以及給予評論：\n『{content}』"
 
 # Choose your LLM critic
-critic = critic_factory(llm_model=LargeLanguageModels.GerminiFlash)
+critic = critic_factory(llm_model=LargeLanguageModels.GeminiFlash)
 
 # Markdown file to output response to
 output_fname: str = f"{critic.__class__.__name__}_response_to_{article_path}"
