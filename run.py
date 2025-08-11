@@ -6,18 +6,19 @@ To run this script, you need the following API-token stored as environment varia
 """
 
 import os
-from llm_critic.critic import DeepSeekR1Critic, ChatGPT4Critic, ClaudeSonnetCritic, GerminiCritic
+from llm_critic.llm_list import LargeLanguageModels
+from llm_critic.critic import critic_factory
 
 
 folder_path: str = os.environ.get("FOLDER_PATH")  # Or put in the folder path with your writing in Markdown files
-article_path: str = "ch31.md"  # A Markdown file in jekyll format
+article_path: str = "ch30.md"  # A Markdown file in jekyll format
 
 # Instruction for the critic
 critic_prompt: str = \
     "你是連載小說編輯。以下是你旗下作者的連載小說稿件。請校對並列出以下稿件的所有錯別字、不當用語、以及給予評論：\n『{content}』"
 
 # Choose your LLM critic
-critic = ChatGPT4Critic()
+critic = critic_factory(llm_model=LargeLanguageModels.GerminiFlash)
 
 # Markdown file to output response to
 output_fname: str = f"{critic.__class__.__name__}_response_to_{article_path}"

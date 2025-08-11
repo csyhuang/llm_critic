@@ -191,6 +191,31 @@ class GitHubModelCritic(Critic):
         return output
 
 
+def critic_factory(llm_model: LargeLanguageModels) -> Critic:
+    """
+    Factory function to instantiate a Critic subclass based on the specified LLM model.
+
+    This function returns an appropriate Critic instance for the given `llm_model`.
+    If the model is supported by GitHub Models, it returns a GitHubModelCritic with the `llm_model` attribute
+    set accordingly. If the model has its own API, it returns a custom Critic class (e.g., GerminiCritic,
+    ClaudeSonnetCritic).
+
+    Args:
+        llm_model (LargeLanguageModels): The LLM model to use for the Critic.
+
+    Returns:
+        Critic: An instance of a Critic subclass configured for the specified LLM model.
+    """
+    mapping = {
+        LargeLanguageModels.GerminiFlash: GerminiCritic,
+        LargeLanguageModels.ClaudeSonnet4: ClaudeSonnetCritic}
+    if llm_model in mapping:
+        return mapping[llm_model]()
+    new_critic = GitHubModelCritic()
+    new_critic.llm_model = llm_model
+    return new_critic
+
+
 class DeepSeekR1Critic(GitHubModelCritic):
     """
     Critic that uses the DeepSeekR1 model hosted on GitHub.
@@ -223,6 +248,18 @@ class ChatGPT4Critic(GitHubModelCritic):
         """
         super().__init__()
         self.llm_model: Optional[LargeLanguageModels] = LargeLanguageModels.ChatGPT4
+
+
+class GPT5Critic(GitHubModelCritic):
+    """
+    Critic that uses the GPT5 model hosted on GitHub.
+    """
+    def __init__(self):
+        """
+        Initializes a GPT5Critic instance.
+        """
+        super().__init__()
+        self.llm_model: Optional[LargeLanguageModels] = LargeLanguageModels.GPT5
 
 
 class ClaudeSonnetCritic(Critic):
