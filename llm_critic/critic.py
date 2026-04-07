@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 import os
+import re
 import json
 import pprint
 import requests
@@ -13,6 +14,8 @@ import anthropic
 
 from llm_critic.llm_list import LargeLanguageModels
 
+TOKEN_LIMIT = 10000
+
 
 class Critic(ABC):
     """
@@ -23,14 +26,15 @@ class Critic(ABC):
     formatted output to be saved to a .md file.
     """
 
-    def __init__(self):
+    def __init__(self, llm_model, token_limit):
         """
         Initializes a Critic instance.
 
         Sets the `llm_model` attribute to None by default.  Subclasses should set this
         to a specific `LargeLanguageModels` value in their own constructors.
         """
-        self.llm_model: Optional[LargeLanguageModels] = None
+        self.llm_model: LargeLanguageModels = llm_model
+        self.token_limit: int = token_limit
 
     @abstractmethod
     def pass_query_to_llm_to_get_response(self, query) -> str:
@@ -68,7 +72,7 @@ class Critic(ABC):
         return response_template
 
     @staticmethod
-    def extract_markdown_content(folder_path, article_filename, token_limit=10000) -> str:
+    def extract_markdown_content(folder_path, article_filename, token_limit) -> str:
         """
         Extracts and cleans the content from a Markdown file of Jekyll blog format.
 
@@ -86,6 +90,12 @@ class Critic(ABC):
         """
         with open(folder_path + article_filename, "r") as introspection_file:
             article = introspection_file.read()
+            # Extract article title
+            #title_match = re.match(r"^title(.*)$", article)
+            title_pattern = re.compile(r'^\s*title:\s*"(.*?)"', re.MULTILINE)
+            match = title_pattern.search(article)
+            article_title: str = match.group(1) if match else "Untitled"
+            # Extract article content
             main_arr = article.split('---')[2:]
             if len(main_arr) == 1:
                 main_markdown_str = main_arr[0]
@@ -93,7 +103,7 @@ class Critic(ABC):
                 main_markdown_str = '\n'.join(main_arr)
         html = markdown(main_markdown_str)
         content_str = BeautifulSoup(html, features="html.parser").text[:token_limit]
-        return content_str
+        return content_str, article_title
 
     @abstractmethod
     def compile_template(self, response, input_filepath, prompt_template) -> str:
@@ -127,8 +137,8 @@ class Critic(ABC):
                 `"Critique the following content for clarity and grammar:\n{content}"`
             output_filename (str): The name of the file to save the critique to.
         """
-        article_content = Critic.extract_markdown_content(folder_path, article_filename)
-        compiled_query: str = task_for_llm.format(content=article_content)
+        article_content, article_title = Critic.extract_markdown_content(folder_path, article_filename, self.token_limit)
+        compiled_query: str = task_for_llm.format(content=article_content, title=article_title)
         response = self.pass_query_to_llm_to_get_response(compiled_query)
         filepath = folder_path + article_filename
         output_markdown_str = self.compile_template(response, filepath, task_for_llm)
@@ -191,7 +201,7 @@ class GitHubModelCritic(Critic):
         return output
 
 
-def critic_factory(llm_model: LargeLanguageModels) -> Critic:
+def critic_factory(llm_model: LargeLanguageModels, token_limit=TOKEN_LIMIT) -> Critic:
     """
     Instantiates and returns a Critic subclass based on the specified LLM model.
 
@@ -205,14 +215,12 @@ def critic_factory(llm_model: LargeLanguageModels) -> Critic:
     Returns:
         Critic: An instance of the appropriate Critic subclass for the specified LLM model.
     """
-    if llm_model.value.startswith("claude"):  # Anthropic's Claude models
-        return ClaudeSonnetCritic()
-
+    if llm_model.value.startswith("claude"):
+        return ClaudeCritic(llm_model, token_limit)
     if llm_model.value.startswith("gemini"):  # Google's Gemini models
-        critic = GerminiCritic()
+        critic = GerminiCritic(llm_model, token_limit)
     else:  # GitHub Models or other models
-        critic = GitHubModelCritic()
-    critic.llm_model = llm_model
+        critic = GitHubModelCritic(llm_model, token_limit)
     return critic
 
 
@@ -229,7 +237,7 @@ class DeepSeekR1Critic(GitHubModelCritic):
 
         Sets the `llm_model` attribute to `LargeLanguageModels.DeepSeekR1`.
         """
-        super().__init__()
+        super().__init__(None, 10000)
         self.llm_model: Optional[LargeLanguageModels] = LargeLanguageModels.DeepSeekR1
 
 
@@ -246,7 +254,7 @@ class ChatGPT4Critic(GitHubModelCritic):
 
         Sets the `llm_model` attribute to `LargeLanguageModels.ChatGPT4`.
         """
-        super().__init__()
+        super().__init__(None, 10000)
         self.llm_model: Optional[LargeLanguageModels] = LargeLanguageModels.ChatGPT4
 
 
@@ -258,24 +266,23 @@ class GPT5Critic(GitHubModelCritic):
         """
         Initializes a GPT5Critic instance.
         """
-        super().__init__()
+        super().__init__(None, 10000)
         self.llm_model: Optional[LargeLanguageModels] = LargeLanguageModels.GPT5
 
 
-class ClaudeSonnetCritic(Critic):
+class ClaudeCritic(Critic):
     """
     Critic that uses the Claude Sonnet model via the Anthropic API.
     """
 
-    def __init__(self):
+    def __init__(self, llm_model: LargeLanguageModels, token_limit: int):
         """
         Initializes a ClaudeSonnetCritic instance.
 
         Sets the `llm_model` attribute to `LargeLanguageModels.ClaudeSonnet4` and defines a
         default system prompt.
         """
-        super().__init__()
-        self.llm_model = LargeLanguageModels.ClaudeSonnet4
+        super().__init__(llm_model, token_limit)
         self.system = "You are world-class editor. Response precisely."
 
     def pass_query_to_llm_to_get_response(self, query):
@@ -322,15 +329,6 @@ class GerminiCritic(Critic):
     """
     Critic that uses the GeminiFlash model via the Google AI Gemini API.
     """
-
-    def __init__(self):
-        """
-        Initializes a GerminiCritic instance.
-
-        Sets the `llm_model` attribute to `LargeLanguageModels.GeminiFlash`.
-        """
-        super().__init__()
-        self.llm_model = LargeLanguageModels.GeminiFlash
 
     def pass_query_to_llm_to_get_response(self, query):
         """

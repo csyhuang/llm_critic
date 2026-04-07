@@ -10,6 +10,7 @@ from enum import Enum
 class LargeLanguageModels(Enum):
     # Anthropic
     ClaudeSonnet4 = "claude-sonnet-4-20250514"
+    ClaudeOpus4p6 = "claude-opus-4-6"
 
     # Google
     GeminiPro = "gemini-2.5-pro"  # Enhanced thinking and reasoning, multimodal understanding, advanced coding, and more
