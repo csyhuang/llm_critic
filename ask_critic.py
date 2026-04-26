@@ -20,7 +20,7 @@ llm_model = LargeLanguageModels.ClaudeOpus4p6
 critic = critic_factory(llm_model=llm_model, token_limit=10000)
 
 # Markdown file to output response to
-output_fname: str = f"{datetime.date.today().strftime("%Y%m%d")}_{llm_model.name}_response_to_{article_path}"
+output_fname: str = f"llm_responses/{datetime.date.today().strftime("%Y%m%d")}_{llm_model.name}_response_to_{article_path}"
 
 # Generate Critique and save them into a Markdown file
 with open(folder_path+article_path, "r") as f:
